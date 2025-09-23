@@ -18,7 +18,7 @@ module.exports = {
         onDelete: "cascade",
         onUpdate: "cascade"
       },
-      User_id: {
+      User_id_1: {
         type: Sequelize.INTEGER,
         references:{
           model: "Users",
@@ -27,7 +27,19 @@ module.exports = {
         onDelete: "cascade",
         onUpdate: "cascade"
       },
-      choice: {
+      User_id_2: {
+        type: Sequelize.INTEGER,
+        references:{
+          model: "Users",
+          key: "id"
+        },
+        onDelete: "cascade",
+        onUpdate: "cascade"
+      },
+      User_id_1_choice: {
+        type: Sequelize.STRING
+      },
+      User_id_2_choice: {
         type: Sequelize.STRING
       },
       result: {

@@ -11,7 +11,8 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      User.hasMany(models.Move, { foreignKey: "User_id" });
+      this.hasMany(models.Move, { as: "MovesAsPlayer1", foreignKey: "User_id_1" });
+      this.hasMany(models.Move, { as: "MovesAsPlayer2", foreignKey: "User_id_2" });
 
     }
   }
