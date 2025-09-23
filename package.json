@@ -1,0 +1,32 @@
+{
+  "name": "rock-peper-scissors",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phase2-groupProject1/Rock-peper-scissors.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/phase2-groupProject1/Rock-peper-scissors/issues"
+  },
+  "homepage": "https://github.com/phase2-groupProject1/Rock-peper-scissors#readme",
+  "devDependencies": {
+    "jest": "^30.1.3",
+    "sequelize-cli": "^6.6.3",
+    "supertest": "^7.1.4"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7"
+  }
+}
