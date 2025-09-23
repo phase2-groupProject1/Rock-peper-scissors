@@ -1,20 +1,17 @@
 const { move, room, user } = require("../models");
-// POST /rooms — Membuat room baru (generate room_code)
+
+function generateRoomCode() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
 export async function createRoom(req, res) {
   try {
-    const { User_id_1 } = req.body;
-    if (!User_id_1)
-      return res.status(400).json({ error: "User ID is required" });
-    const chars = "0123456789";
-    let roomCode = "";
-    Array.from({ length: 6 }).forEach(() => {
-      roomCode += chars[Math.floor(Math.random() * chars.length)];
-    });
-    const newRoom = await room.create({ room_code: roomCode });
-    await move.create({
-      Room_id: newRoom.id,
-      User_id_1,
-    });
+    const newRoom = await room.create({});
+
+    const roomCode = generateRoomCode();
+    newRoom.room_code = roomCode;
+    await newRoom.save();
+
     return res.status(201).json({ room: newRoom });
   } catch (error) {
     console.error("Error creating room:", error);
@@ -22,7 +19,6 @@ export async function createRoom(req, res) {
   }
 }
 
-// GET /rooms/:room_code — Ambil detail room (status, pemain, dsb)
 export async function getRoomDetails(req, res) {
   try {
     const { room_code } = req.params;
@@ -36,6 +32,31 @@ export async function getRoomDetails(req, res) {
     return res.status(200).json({ room: roomDetails });
   } catch (error) {
     console.error("Error fetching room details:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+export async function joinRoom(req, res) {
+  try {
+    const { room_code } = req.params;
+    const { user_id } = req.body;
+    if (!user_id) {
+      return res.status(400).json({ error: "User ID is required" });
+    }
+    const roomDetails = await room.findOne({
+      where: { room_code },
+      include: [{ model: user, as: "players" }],
+    });
+    if (!roomDetails) {
+      return res.status(404).json({ error: "Room not found" });
+    }
+    await move.create({
+      Room_id: roomDetails.id,
+      User_id: user_id,
+    });
+    return res.status(200).json({ message: "Successfully joined the room" });
+  } catch (error) {
+    console.error("Error joining room:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
