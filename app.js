@@ -4,14 +4,16 @@ const port = 3000
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const userController = require('./controllers/userController');
+const UserController = require('./controllers/userController');
 
 app.get('/', (req, res) => {
   res.send('Hello World!')
 })
 
-// Endpoint register user
-app.post('/users', userController.register);
+
+// Endpoint Users
+app.post('/users', UserController.register);
+app.get('/users/:id', UserController.getById);
 
 app.listen(port, () => {
   console.log(`Example app listening on port http://localhost:${port}`)
