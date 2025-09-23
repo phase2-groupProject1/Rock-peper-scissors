@@ -16,7 +16,13 @@ app.get('/', (req, res) => {
   res.json({ status: 'RPS server running', socket: `ws://localhost:${port}` });
 });
 
+// Socket.io setup (open CORS for dev; adjust in production)
+const io = new Server(server, {
+  cors: { origin: '*', methods: ['GET', 'POST'] },
+});
 
+// Register controller
+socketController(io);
 
 server.listen(port, () => {
   console.log(`RPS server listening on http://localhost:${port}`);
