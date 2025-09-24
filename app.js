@@ -11,6 +11,7 @@ const port = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 const UserController = require('./controllers/userController');
+const RoomController = require('./controllers/roomController');
 
 // Basic route (optional)
 app.get('/', (req, res) => {
@@ -26,8 +27,15 @@ const io = new Server(server, {
 socketController(io);
 // Endpoint Users
 app.post('/users', UserController.register);
-app.get('/users/:id', UserController.getById);
+app.get('/users/:id', UserController.getById); 
+// Endpoint Rooms
 
+
+app.post('/rooms', RoomController.createRoom);
+app.get('/rooms/:room_code', RoomController.getRoomDetails);
+app.post('/rooms/:room_code/join', RoomController.joinRoom);
+
+// Start server
 server.listen(port, () => {
   console.log(`RPS server listening on http://localhost:${port}`);
 });

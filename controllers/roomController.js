@@ -1,14 +1,15 @@
 const { move, room, user } = require("../models");
 
-function generateRoomCode() {
+class RoomController {
+  static generateRoomCode() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-export async function createRoom(req, res) {
-  try {
+  static async createRoom(req, res) {
+    try {
     const newRoom = await room.create({});
 
-    const roomCode = generateRoomCode();
+    const roomCode = RoomController.generateRoomCode();
     newRoom.room_code = roomCode;
     await newRoom.save();
 
@@ -19,7 +20,7 @@ export async function createRoom(req, res) {
   }
 }
 
-export async function getRoomDetails(req, res) {
+static async getRoomDetails(req, res) {
   try {
     const { room_code } = req.params;
     const roomDetails = await room.findOne({
@@ -36,7 +37,7 @@ export async function getRoomDetails(req, res) {
   }
 }
 
-export async function joinRoom(req, res) {
+static async joinRoom(req, res) {
   try {
     const { room_code } = req.params;
     const { user_id } = req.body;
@@ -59,4 +60,7 @@ export async function joinRoom(req, res) {
     console.error("Error joining room:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
+  }
 }
+
+module.exports = RoomController;
