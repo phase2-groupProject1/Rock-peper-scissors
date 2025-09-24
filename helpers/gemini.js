@@ -1,5 +1,7 @@
 const axios = require("axios");
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash-latest"; // fallback to widely available model
+const GEMINI_API_VERSION = process.env.GEMINI_API_VERSION || "v1beta"; // can be set to 'v1' if enabled
 
 function decideWinner(playerMove, aiMove) {
   if (playerMove === aiMove) return "draw";
@@ -33,16 +35,17 @@ async function getAIMove(playerHistory) {
   }
   try {
     const prompt = buildPrompt(playerHistory);
+    const url = `https://generativelanguage.googleapis.com/${GEMINI_API_VERSION}/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`;
     const response = await axios.post(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+      url,
       {
         contents: [{ parts: [{ text: prompt }] }],
       },
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${GEMINI_API_KEY}`,
         },
+        timeout: 5000,
       }
     );
 
@@ -64,6 +67,10 @@ async function getAIMove(playerHistory) {
     };
   } catch (error) {
     console.error("Gemini API error:", error);
+    // Helpful hint when 404/401 occurs
+    if (error?.response?.status === 404) {
+      console.error(`Gemini model not found. Tried: ${GEMINI_API_VERSION}/${GEMINI_MODEL}. Set GEMINI_MODEL or GEMINI_API_VERSION in .env to a supported model/version.`);
+    }
     const moves = ["rock", "paper", "scissors"];
     const ai_move = moves[Math.floor(Math.random() * 3)];
     return {

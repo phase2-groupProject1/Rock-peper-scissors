@@ -1,4 +1,4 @@
-const { move, room, user } = require("../models");
+const { Move, Room, User } = require("../models");
 
 class RoomController {
   static generateRoomCode() {
@@ -7,7 +7,7 @@ class RoomController {
 
   static async createRoom(req, res) {
     try {
-      const newRoom = await room.create({});
+      const newRoom = await Room.create({});
 
       const roomCode = RoomController.generateRoomCode();
       newRoom.room_code = roomCode;
@@ -23,9 +23,9 @@ class RoomController {
   static async getRoomDetails(req, res) {
     try {
       const { room_code } = req.params;
-      const roomDetails = await room.findOne({
+      const roomDetails = await Room.findOne({
         where: { room_code },
-        include: [{ model: user, as: "players" }],
+        // include: [{ model: User, as: "players" }],
       });
       if (!roomDetails) {
         return res.status(404).json({ error: "Room not found" });
@@ -39,8 +39,8 @@ class RoomController {
 
   static async getAllRooms(req, res) {
     try {
-      const rooms = await room.findAll({
-        include: [{ model: user, as: "players" }],
+      const rooms = await Room.findAll({
+        // include: [{ model: User, as: "players" }],
         order: [['createdAt', 'DESC']]
       });
       return res.status(200).json({ rooms });
@@ -57,9 +57,9 @@ class RoomController {
       if (!user_id) {
         return res.status(400).json({ error: "User ID is required" });
       }
-      const roomDetails = await room.findOne({
+      const roomDetails = await Room.findOne({
         where: { room_code },
-        include: [{ model: user, as: "players" }],
+        // include: [{ model: User, as: "players" }],
       });
       if (!roomDetails) {
         return res.status(404).json({ error: "Room not found" });

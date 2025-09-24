@@ -1,4 +1,5 @@
 const { Move, Room, User } = require("../models");
+const { getAIMove } = require("../helpers/gemini");
 
 const rooms = {};
 
@@ -171,6 +172,121 @@ class SocketGameController {
     }
   }
 
+  // Play versus AI via Socket.IO
+  static async onPlayAI(io, socket, body = {}) {
+    try {
+      console.log("[play_ai]", socket.id, body);
+      const playerMove = String(body.player_move || body.move || "").toLowerCase();
+      if (!["rock", "paper", "scissors"].includes(playerMove)) {
+        return socket.emit("error", { message: "invalid move (rock|paper|scissors)" });
+      }
+
+      // Identify user and room context
+      const userId = body.userId ?? socket.data.userId ?? null;
+      const name = socket.data.playerName || body.playerName || `Player-${socket.id.slice(0, 5)}`;
+      const roomKey = socket.data.roomId || body.roomId || body.room || body.roomCode || "ai-room";
+
+      let roomDbId = socket.data.roomDbId ?? null;
+      try {
+        if (!roomDbId && body.roomId && /^\d+$/.test(String(body.roomId))) {
+          roomDbId = Number(body.roomId);
+        } else if (!roomDbId && body.roomCode) {
+          const found = await Room.findOne({ where: { room_code: body.roomCode } });
+          roomDbId = found ? found.id : null;
+        }
+      } catch (e) {
+        console.log("[play_ai][warn] room resolve failed:", e.message);
+      }
+
+      // Build a simple player history if possible (best-effort, tolerant to schema variants)
+      let playerHistory = [];
+      try {
+        if (roomDbId && userId) {
+          const rounds = await Move.findAll({ where: { Room_id: roomDbId }, order: [["createdAt", "ASC"]] });
+          for (const rr of rounds) {
+            const r = rr.get ? rr.get({ plain: true }) : rr;
+            if (r && typeof r === "object") {
+              if ("User_id_1" in r || "User_id_2" in r) {
+                if (r.User_id_1 === userId && r.User_id_1_choice) playerHistory.push(r.User_id_1_choice);
+                else if (r.User_id_2 === userId && r.User_id_2_choice) playerHistory.push(r.User_id_2_choice);
+              } else if ("User_id" in r && "move" in r) {
+                if (r.User_id === userId && r.move) playerHistory.push(r.move);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.log("[play_ai][warn] history load failed:", e.message);
+      }
+
+      // Get AI move via helper (uses Gemini if key exists, else random)
+      let aiMove = "rock";
+      let insights = null;
+      try {
+        const aiResp = await getAIMove(playerHistory);
+        const m = String(aiResp?.move || "").toLowerCase();
+        aiMove = ["rock", "paper", "scissors"].includes(m) ? m : "rock";
+        insights = aiResp?.insights ?? null;
+      } catch (e) {
+        console.log("[play_ai][warn] getAIMove failed, fallback random:", e.message);
+        aiMove = ["rock", "paper", "scissors"][Math.floor(Math.random() * 3)];
+      }
+
+      // Decide outcome from player's perspective
+      const who = this.decideWinner(playerMove, aiMove); // 'a' | 'b' | 'draw'
+      const resultPerspective = who === "draw" ? "draw" : who === "a" ? "win" : "lose";
+
+      // Emit only back to the requester
+      const payload = {
+        room: roomKey,
+        players: [
+          { id: socket.id, name, userId, move: playerMove },
+          { id: "AI", name: "AI", userId: null, move: aiMove },
+        ],
+        winnerId: who === "draw" ? null : who === "a" ? socket.id : "AI",
+        winnerUserId: who === "a" ? userId : null,
+        winnerName: who === "draw" ? null : who === "a" ? name : "AI",
+        result: resultPerspective,
+        message: who === "draw" ? "Draw" : `Winner: ${who === "a" ? name : "AI"}`,
+        ai: { insights },
+      };
+      socket.emit("round_result", payload);
+      console.log("[round_result->emit][ai]", payload);
+
+      // Best-effort DB persistence (try combined schema first, then fallback to per-move rows)
+      const resultTag = who === "draw" ? "draw" : who === "a" ? "User_id_1" : "User_id_2";
+      if (roomDbId || userId) {
+        try {
+          await Move.create({
+            Room_id: roomDbId,
+            User_id_1: userId,
+            User_id_2: null,
+            User_id_1_choice: playerMove,
+            User_id_2_choice: aiMove,
+            result: resultTag,
+          });
+          console.log("[db][Move.create][ai] combined schema saved");
+        } catch (e1) {
+          console.log("[db][warn][ai] combined schema failed, trying per-move rows:", e1.message);
+          try {
+            const res1 = who === "draw" ? "draw" : who === "a" ? "win" : "lose";
+            const res2 = who === "draw" ? "draw" : who === "b" ? "win" : "lose";
+            await Move.create({ Room_id: roomDbId, User_id: userId, move: playerMove, result: res1 });
+            await Move.create({ Room_id: roomDbId, User_id: null, move: aiMove, result: res2 });
+            console.log("[db][Move.create][ai] per-move rows saved");
+          } catch (e2) {
+            console.log("[db][error][ai] persistence failed:", e2.message);
+          }
+        }
+      } else {
+        console.log("[db][skip][ai] Missing roomDbId and userId");
+      }
+    } catch (e) {
+      console.log("[play_ai][error]", e.message);
+      socket.emit("error", { message: "AI play failed" });
+    }
+  }
+
   static onDisconnect(socket, reason) {
     console.log("[disconnect]", socket.id, reason);
     const roomId = socket.data.roomId;
@@ -188,6 +304,7 @@ class SocketGameController {
       socket.on("player_move", async (body) =>
         this.onPlayerMove(io, socket, body)
       );
+      socket.on("play_ai", async (body) => this.onPlayAI(io, socket, body));
       socket.on("disconnect", (reason) => this.onDisconnect(socket, reason));
     });
   }
