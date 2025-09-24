@@ -37,6 +37,19 @@ class RoomController {
     }
   }
 
+  static async getAllRooms(req, res) {
+    try {
+      const rooms = await room.findAll({
+        include: [{ model: user, as: "players" }],
+        order: [['createdAt', 'DESC']]
+      });
+      return res.status(200).json({ rooms });
+    } catch (error) {
+      console.error("Error fetching all rooms:", error);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  }
+
   static async joinRoom(req, res) {
     try {
       const { room_code } = req.params;
