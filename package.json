@@ -1,0 +1,39 @@
+{
+  "name": "rock-peper-scissors",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --detectOpenHandles --verbose --coverage",
+    "dev": "nodemon bin/www"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phase2-groupProject1/Rock-peper-scissors.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/phase2-groupProject1/Rock-peper-scissors/issues"
+  },
+  "homepage": "https://github.com/phase2-groupProject1/Rock-peper-scissors#readme",
+  "devDependencies": {
+    "jest": "^30.1.3",
+    "sequelize-cli": "^6.6.3",
+    "supertest": "^7.1.4"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.12.2",
+    "bcryptjs": "^3.0.2",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3",
+    "sequelize": "^6.37.7",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  }
+}
