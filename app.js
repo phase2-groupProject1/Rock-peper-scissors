@@ -28,6 +28,7 @@ socketController(io);
 
 app.post("/users", UserController.register);
 app.get("/users/:id", UserController.getById);
+app.get("/rooms", RoomController.getAllRooms);
 app.post("/rooms", RoomController.createRoom);
 app.get("/rooms/:room_code", RoomController.getRoomDetails);
 app.post("/rooms/:room_code/join", RoomController.joinRoom);
