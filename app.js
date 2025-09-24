@@ -10,6 +10,7 @@ const port = 3000;
 // Basic middlewares
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+const UserController = require('./controllers/userController');
 
 // Basic route (optional)
 app.get('/', (req, res) => {
@@ -23,7 +24,14 @@ const io = new Server(server, {
 
 // Register controller
 socketController(io);
+// Endpoint Users
+app.post('/users', UserController.register);
+app.get('/users/:id', UserController.getById);
 
 server.listen(port, () => {
   console.log(`RPS server listening on http://localhost:${port}`);
 });
+
+
+
+
