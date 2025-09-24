@@ -4,6 +4,9 @@ const { getAIMove } = require("../helpers/gemini");
 const rooms = {};
 
 class SocketGameController {
+  // Track last AI call timestamp per-socket to prevent bursts
+  static lastAiCall = new Map(); // socket.id -> timestamp
+
   static getRoom(roomId) {
     if (!rooms[roomId])
       rooms[roomId] = { names: {}, moves: {}, userIds: {}, seats: [] };
@@ -16,6 +19,26 @@ class SocketGameController {
     if (a === b) return "draw";
     const beats = { rock: "scissors", paper: "rock", scissors: "paper" };
     return beats[a] === b ? "a" : "b";
+  }
+
+  static buildRoomsUpdate() {
+    try {
+      return Object.keys(rooms).map((roomKey) => {
+        const room = this.getRoom(roomKey);
+        const count = Array.isArray(room.seats)
+          ? room.seats.length
+          : room && room.names
+          ? Object.keys(room.names).length
+          : 0;
+        return {
+          room: roomKey,
+          players: count,
+          status: count >= 2 ? "playing" : "waiting",
+        };
+      });
+    } catch (e) {
+      return [];
+    }
   }
 
   static async onJoinRoom(io, socket, body = {}) {
@@ -181,6 +204,14 @@ class SocketGameController {
         return socket.emit("error", { message: "invalid move (rock|paper|scissors)" });
       }
 
+      // Cooldown 1s per socket to avoid spamming the external API
+      const now = Date.now();
+      const last = this.lastAiCall.get(socket.id) || 0;
+      if (now - last < 1000) {
+        return socket.emit("error", { message: "You're going too fast. Please wait a moment before playing AI again." });
+      }
+      this.lastAiCall.set(socket.id, now);
+
       // Identify user and room context
       const userId = body.userId ?? socket.data.userId ?? null;
       const name = socket.data.playerName || body.playerName || `Player-${socket.id.slice(0, 5)}`;
@@ -251,7 +282,7 @@ class SocketGameController {
         ai: { insights },
       };
       socket.emit("round_result", payload);
-      console.log("[round_result->emit][ai]", payload);
+  console.log("[round_result->emit][ai]", payload);
 
       // Best-effort DB persistence (try combined schema first, then fallback to per-move rows)
       const resultTag = who === "draw" ? "draw" : who === "a" ? "User_id_1" : "User_id_2";
