@@ -128,32 +128,28 @@ class SocketGameController {
         result: who12 === 'draw' ? 'draw' : 'win',
       });
 
-      // Persist to DB (best-effort; non-blocking game flow)
-      const roomDbId = socket.data.roomDbId ?? null;
-      try {
-        if (roomDbId || userId1 || userId2) {
-          const resultTag = who12 === 'draw' ? 'draw' : (winnerSocketId === id1 ? 'User_id_1' : 'User_id_2');
+      // Persist to DB if room and users are known
+      const roomDbId = socket.data.roomDbId;
+      if (roomDbId && userId1 && userId2) {
+        try {
+          const result1 = who12 === 'draw' ? 'draw' : (who12 === 'a' ? 'win' : 'lose');
+          const result2 = who12 === 'draw' ? 'draw' : (who12 === 'b' ? 'win' : 'lose');
+
           await Move.create({
             Room_id: roomDbId,
-            User_id_1: userId1,
-            User_id_2: userId2,
-            User_id_1_choice: move1,
-            User_id_2_choice: move2,
-            result: resultTag,
+            User_id: userId1,
+            move: move1,
+            result: result1,
           });
-          console.log('[db][Move.create] saved', {
+          await Move.create({
             Room_id: roomDbId,
-            User_id_1: userId1,
-            User_id_2: userId2,
-            User_id_1_choice: move1,
-            User_id_2_choice: move2,
-            result: resultTag,
+            User_id: userId2,
+            move: move2,
+            result: result2,
           });
-        } else {
-          console.log('[db][skip] Missing roomDbId and userIds; not saving this round');
+        } catch (dbError) {
+          console.error("Failed to save moves to database:", dbError);
         }
-      } catch (e) {
-        console.log('[db][error] Move.create failed:', e.message);
       }
 
       rooms[roomKey].moves = {}; // reset moves for next round
