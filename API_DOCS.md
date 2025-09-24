@@ -22,6 +22,7 @@ http://localhost:3000
     "username": "string" // required
   }
   ```
+
 - **Success Response:**
   - **Code:** 201
   - **Content:**
@@ -67,5 +68,6 @@ http://localhost:3000
 ---
 
 ## Catatan
+
 - Semua response dikirim dalam format JSON.
 - Pastikan header `Content-Type: application/json` pada request POST.
